@@ -23,26 +23,21 @@ static struct list_head *getMiddle(struct list_head *head)
 
 static void merge(struct list_head *head, struct list_head *newhead)
 {
-    struct listitem *item = NULL, *is = NULL;
-    struct listitem *pivot;
+    struct listitem *item1 = NULL, *item2 = NULL;
     LIST_HEAD(temp);
 
-    list_for_each_entry_safe (item, is, head, list) {
-        if (newhead->next != newhead)
-            pivot = list_first_entry(newhead, struct listitem, list);
-        else
-            break;
+    while (!list_empty(head) && !list_empty(newhead)) {
+        item1 = list_first_entry(head, struct listitem, list);
+        item2 = list_first_entry(newhead, struct listitem, list);
 
-        if (cmpint(&item->i, &pivot->i) < 0)
-            list_move_tail(&item->list, &temp);
-        else {
-            list_move_tail(&pivot->list, &temp);
-            is = item;
-            item = list_entry(item->list.prev, __typeof__(*item), list);
-        }
+        if (cmpint(&item1->i, &item2->i) < 0)
+            list_move_tail(&item1->list, &temp);
+        else
+            list_move_tail(&item2->list, &temp);
     }
-    list_splice(temp, head);
-    list_splice(newhead, head);
+    list_splice_tail_init(head, &temp);
+    list_splice_tail_init(newhead, &temp);
+    list_splice_init(&temp, head);
 }
 
 static void list_msort(struct list_head *head)
@@ -50,13 +45,16 @@ static void list_msort(struct list_head *head)
     if (list_empty(head) || list_is_singular(head))
         return;
 
-    static struct list_head *middle = getMiddle(head);
+    struct list_head *middle;
     LIST_HEAD(newhead);
-    list_cut_position(newhead, head, middle);
+
+    middle = getMiddle(head);
+    list_cut_position(&newhead, head, middle);
 
     list_msort(head);
-    list_msort(newhead);
-    merge(head, newhead);
+    list_msort(&newhead);
+    merge(head, &newhead);
+
     return;
 }
 
